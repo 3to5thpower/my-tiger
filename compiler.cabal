@@ -28,6 +28,7 @@ library
       Lib
       Parse
       Parse.Base
+      Parse.Data
       Parse.Lexer
       Parse.Parser
   other-modules:

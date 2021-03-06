@@ -1,9 +1,3 @@
-module Lib
-  ( someFunc,
-  )
-where
+module Lib where
 
 import Parse
-
-someFunc :: IO ()
-someFunc = getContents >>= print . parser . lexer
