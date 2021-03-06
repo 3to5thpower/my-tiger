@@ -3,7 +3,7 @@ module Lib
   )
 where
 
-import Lexer
+import Parse
 
 someFunc :: IO ()
-someFunc = Lexer.main
+someFunc = getContents >>= print . parser . lexer
