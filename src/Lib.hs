@@ -1,6 +1,9 @@
 module Lib
-    ( someFunc
-    ) where
+  ( someFunc,
+  )
+where
+
+import Lexer
 
 someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someFunc = Lexer.main
