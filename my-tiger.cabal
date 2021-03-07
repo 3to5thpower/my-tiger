@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 531a2ff3ea763fa171c1b1e8b19fecb005005641d3d89ed5fd1638f0fbba2087
+-- hash: 73f6130f215996682075cf8f84b306232ced2c4d6328799160c2a9c37b4f111f
 
 name:           my-tiger
 version:        0.1.0.0
@@ -28,8 +28,6 @@ source-repository head
 library
   exposed-modules:
       Parse
-      Parse.Base
-      Parse.Data
       Parse.Lexer
       Parse.Parser
   other-modules:
