@@ -4,5 +4,5 @@ import Parse.Data
 import Parse.Lexer
 import Parse.Parser
 
-parse :: String -> Exp
-parse = parser . lexer
+parse :: String -> Either String Exp
+parse = parser

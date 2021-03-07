@@ -1,13 +1,10 @@
 module Parse.Data
-  ( Token (..),
-    Exp (..),
+  ( Exp (..),
     Exp1 (..),
     Term (..),
     Factor (..),
   )
 where
-
-import Parse.Lexer
 
 data Exp
   = Let String Exp Exp

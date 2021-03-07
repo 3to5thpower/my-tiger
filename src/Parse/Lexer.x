@@ -1,35 +1,63 @@
 {
 module Parse.Lexer (
-  Parse.Lexer.lexer, 
+  lexer, 
   Token(..),
+  Alex,
+  alexError,
+  runAlex
   )  
 where
 }
 
-%wrapper "posn"
+%wrapper "monad"
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
 
+-- each token functions needs AlexInput:{AlexPosn, Char, [Byte], String} -> Int -> AlexToken
 tokens :-
-
   $white+				;
   "//".*				;
-  let					{ \pos _ -> TokenLet pos }
-  in					{ \pos _ -> TokenIn pos }
-  $digit+				{ \pos s -> TokenInt (read s, pos) }
-  [\=] { \pos _ -> TokenEq pos}
-  [\+] { \pos _ -> TokenPlus pos}
-  [\-] { \pos _ -> TokenMinus pos}
-  [\*] { \pos _ -> TokenTimes pos}
-  [\/] { \pos _ -> TokenDiv pos}
-  [\(] { \pos _ -> TokenOB pos}
-  [\)] { \pos _ -> TokenCB pos}
+  let					{ mkL LLet }
+  in					{ mkL LIn }
+  $digit+				{ mkL LInt }
+  $alpha [$alpha $digit \_ \']*		{ mkL LVar}
+  [\=] { mkL LEq}
+  [\+] { mkL LPlus }
+  [\-] { mkL LMinus }
+  [\*] { mkL LTimes }
+  [\/] { mkL LDiv }
+  [\(] { mkL LLParen }
+  [\)] { mkL LRParen }
 
-  $alpha [$alpha $digit \_ \']*		{ \pos s -> TokenVar (s, pos) }
 
 {
--- Each action has type :: String -> Token
+
+data LexemeClass = LInt | LVar | LLet | LIn | LLParen | LRParen 
+  | LEq | LPlus | LMinus | LTimes | LDiv
+  deriving (Eq, Show)
+
+mkL :: LexemeClass -> AlexInput -> Int -> Alex Token
+mkL c (pos, _, _, str) len = 
+  case c of
+    LInt -> return (TokenInt ((read tok), pos))
+    LVar -> return (TokenVar (tok, pos))
+    LLet -> return (TokenLet pos)
+    LIn -> return (TokenIn pos)
+    LLParen -> return (TokenLParen pos)
+    LRParen -> return (TokenRParen pos)
+    LEq -> return (TokenEq pos)
+    LPlus -> return (TokenPlus pos)
+    LMinus -> return (TokenMinus pos)
+    LTimes -> return (TokenTimes pos)
+    LDiv -> return (TokenDiv pos)
+  where
+    tok = take len str
+
+
+alexEOF :: Alex Token
+alexEOF = return Eof
+
 
 data Token
   = TokenLet AlexPosn
@@ -41,8 +69,9 @@ data Token
   | TokenMinus AlexPosn
   | TokenTimes AlexPosn
   | TokenDiv AlexPosn
-  | TokenOB AlexPosn
-  | TokenCB AlexPosn
+  | TokenLParen AlexPosn
+  | TokenRParen AlexPosn
+  | Eof
   deriving (Eq)
 
 instance Show Token where
@@ -55,11 +84,14 @@ instance Show Token where
   show (TokenMinus pos) = show "-" ++ prettyAlexPosn pos
   show (TokenTimes pos) = show "*" ++ prettyAlexPosn pos
   show (TokenDiv pos) = show "/" ++ prettyAlexPosn pos
-  show (TokenOB pos) = show "(" ++ prettyAlexPosn pos
-  show (TokenCB pos) = show ")" ++ prettyAlexPosn pos
+  show (TokenLParen pos) = show "(" ++ prettyAlexPosn pos
+  show (TokenRParen pos) = show ")" ++ prettyAlexPosn pos
+  show (Eof) = show "[EOF]"
 
 prettyAlexPosn (AlexPn offset line col) = 
   "at line " ++ show line ++ ", col " ++ show col
 
-lexer = alexScanTokens
+-- lexer = alexScanTokens
+lexer :: (Token -> Alex a) -> Alex a
+lexer = (alexMonadScan >>=)
 }

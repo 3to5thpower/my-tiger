@@ -3,10 +3,13 @@ module Parse.Parser (
       parser,
 ) where
 import Parse.Data
+import Parse.Lexer
 }
 
 
-%name parser
+%name parser1
+%lexer {lexer} {Eof}
+%monad {Alex}
 %tokentype {Token}
 %error {parseError}
 
@@ -20,8 +23,8 @@ import Parse.Data
     '-'             { TokenMinus _ }
     '*'             { TokenTimes _ }
     '/'             { TokenDiv _ }
-    '('             { TokenOB _ }
-    ')'             { TokenCB _ }
+    '('             { TokenLParen _ }
+    ')'             { TokenRParen _ }
 %%
 
 Exp : let var '=' Exp in Exp { Let $2 $4 $6 }
@@ -41,8 +44,8 @@ Factor
       | '(' Exp ')'             { Brack $2 }
 
 {
-parseError :: [Token] -> a
-parseError [] = error "Parse Error at EOF"
-parseError (t:ts) = error $ "Parse Error: " ++ show t
+parseError :: Token -> Alex a
+parseError tok = alexError $ "Parse Error: " ++ show tok
 
+parser s = runAlex s parser1
 }
