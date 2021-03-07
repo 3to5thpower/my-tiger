@@ -29,6 +29,7 @@ import Parse.Lexer
 %right in
 %left '+' '-' 
 %left '*' '/'
+%left NEG
 %%
 
 Exp : let var '=' Exp in Exp { Let $2 $4 $6 }
@@ -37,6 +38,7 @@ Exp : let var '=' Exp in Exp { Let $2 $4 $6 }
     | Exp '*' Exp {Times $1 $3}
     | Exp '/' Exp {Div $1 $3}
     | '(' Exp ')' { $2 }
+    | '-' Exp %prec NEG {Negate $2}
     | int { Int $1 }
     | var { Var $1 }
 
@@ -48,6 +50,7 @@ data Exp =
   | Times Exp Exp
   | Div Exp Exp
   | Brack Exp
+  | Negate Exp
   | Int Int
   | Var String
   deriving(Eq, Show)
