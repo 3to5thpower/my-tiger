@@ -11,17 +11,17 @@ import Parse.Data
 %error {parseError}
 
 %token
-    let             { TokenLet }
-    in              { TokenIn }
-    int             { TokenInt $$ }
-    var             { TokenVar $$ }
-    '='             { TokenEq }
-    '+'             { TokenPlus }
-    '-'             { TokenMinus }
-    '*'             { TokenTimes }
-    '/'             { TokenDiv }
-    '('             { TokenOB }
-    ')'             { TokenCB }
+    let             { TokenLet _ }
+    in              { TokenIn _ }
+    int             { TokenInt ($$, _) }
+    var             { TokenVar ($$, _) }
+    '='             { TokenEq _ }
+    '+'             { TokenPlus _ }
+    '-'             { TokenMinus _ }
+    '*'             { TokenTimes _ }
+    '/'             { TokenDiv _ }
+    '('             { TokenOB _ }
+    ')'             { TokenCB _ }
 %%
 
 Exp : let var '=' Exp in Exp { Let $2 $4 $6 }
@@ -42,5 +42,7 @@ Factor
 
 {
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseError [] = error "Parse Error at EOF"
+parseError (t:ts) = error $ "Parse Error: " ++ show t
+
 }

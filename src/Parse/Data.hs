@@ -7,20 +7,7 @@ module Parse.Data
   )
 where
 
--- The token type:
-data Token
-  = TokenLet
-  | TokenIn
-  | TokenVar String
-  | TokenInt Int
-  | TokenEq
-  | TokenPlus
-  | TokenMinus
-  | TokenTimes
-  | TokenDiv
-  | TokenOB
-  | TokenCB
-  deriving (Eq, Show)
+import Parse.Lexer
 
 data Exp
   = Let String Exp Exp
