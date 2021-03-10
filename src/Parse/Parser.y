@@ -10,7 +10,6 @@ module Parse.Parser (
       FunDec(..),
       Exp(..),
       LValue(..),
-      RValue(..),
 ) where
 import Parse.Lexer
 }
@@ -78,33 +77,7 @@ import Parse.Lexer
 %%
 
 Exp : LValue { LValue $1}
-    | RValue { RValue $1}
-
-Decs : {[]}
-     | Decs Dec { $2 : $1 } 
-
-Dec : type TypeId "=" Type { TyDec $2 $4 }
-    | VarDec { VarDec $1 }
-    | FunDec { FunDec $1 }
-Type : TypeId { Type $1 }
-     | "{" TyFields "}" { RecordType $2 }
-     | array of TypeId { ArrayType $3 }
-TyFields : {[]}
-         | Id ":" TypeId { [($1, $3)]}
-         | TyFields ","  Id ":" TypeId { ($3, $5) : $1 }
-TypeId : Id { $1 }
-VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
-       | var Id ":" TypeId ":=" Exp {LongVarDec $2 $4 $6}
-FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
-       | function Id "(" TyFields ")" ":" TypeId "=" Exp {LongFunDec $2 $4 $7 $9}
-
-
-LValue : Id {Variable $1}
-       | LValue "." Id {DotAccess $1 $3}
-       | LValue "[" Exp "]" {Index $1 $3}
-Id : id { Id $1}
-
-RValue : nil {Nil}
+    | nil {Nil}
     | "(" sequencies ")" { Seq $2}
     | "(" ")" {Unit}
     | int {Int $1}
@@ -132,6 +105,32 @@ RValue : nil {Nil}
     | break {Break}
     | let Decs in Exp end {LetInEnd $2 $4}
     | "(" Exp ")" {Brack $2}
+
+
+Decs : {[]}
+     | Decs Dec { $2 : $1 } 
+
+Dec : type TypeId "=" Type { TyDec $2 $4 }
+    | VarDec { VarDec $1 }
+    | FunDec { FunDec $1 }
+Type : TypeId { Type $1 }
+     | "{" TyFields "}" { RecordType $2 }
+     | array of TypeId { ArrayType $3 }
+TyFields : {[]}
+         | Id ":" TypeId { [($1, $3)]}
+         | TyFields ","  Id ":" TypeId { ($3, $5) : $1 }
+TypeId : Id { $1 }
+VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
+       | var Id ":" TypeId ":=" Exp {LongVarDec $2 $4 $6}
+FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
+       | function Id "(" TyFields ")" ":" TypeId "=" Exp {LongFunDec $2 $4 $7 $9}
+
+
+LValue : Id {Variable $1}
+       | LValue "." Id {DotAccess $1 $3}
+       | LValue "[" Exp "]" {Index $1 $3}
+Id : id { Id $1}
+
 sequencies : Exp {[$1]}
     | sequencies ";" Exp { $3 : $1 }
 arguments : {[]}
@@ -155,15 +154,14 @@ data FunDec = ShortFunDec Id TyFields Exp
   | LongFunDec Id TyFields TypeId Exp
   deriving (Eq, Show)
 
-data Exp = LValue LValue | RValue RValue deriving (Eq, Show)
 data LValue =
     Variable Id  
   | DotAccess LValue Id
   | Index LValue Exp
   deriving (Eq, Show)
 newtype Id = Id String deriving (Eq, Show)
-data RValue =
-    Nil
+data Exp = LValue LValue
+  | Nil
   | Seq [Exp]
   | Unit
   | Int Int 

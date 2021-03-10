@@ -14,6 +14,9 @@ where
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
+$graphic    = $printable # $white
+
+@string     = \" ($graphic # \")* \"
 
 tokens :-
   $white+				;
@@ -37,7 +40,7 @@ tokens :-
   nil {mkL LNil}
   $digit+				{ mkL LInt }
   $alpha [$alpha $digit \_ \']*		{ mkL LName}
-  "\"" $printable* "\"" {mkL LString}
+  @string {mkL LString}
   "=" { mkL LEq}
   "<>" {mkL LNeq}
   "<" {mkL LLess}
