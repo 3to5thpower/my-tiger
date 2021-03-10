@@ -18,4 +18,4 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
       - name: test
-      - run: stack test
+        run: stack test
