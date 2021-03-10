@@ -19,13 +19,14 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
       - name: Cache .stack
-        id: cache-stack
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.stack
           key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}
           restore-keys: |
             ${{ runner.os }}-stack-
+            ${{ runner.os }}-
+
       - name: alex happy install
         run: stack install alex happy
       - name: install dependencies
