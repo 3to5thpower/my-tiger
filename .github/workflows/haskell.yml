@@ -17,5 +17,7 @@ jobs:
           ghc-version: '8.10.4'
           enable-stack: true
           stack-version: 'latest'
+      - name: setup
+        run: stack install alex happy
       - name: test
         run: stack test
