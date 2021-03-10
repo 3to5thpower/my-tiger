@@ -17,7 +17,9 @@ jobs:
           ghc-version: '8.10.4'
           enable-stack: true
           stack-version: 'latest'
-      - name: setup
-        run: stack install alex happy
+      - name: alex happy install
+        run: stack --system-ghc install alex happy
+      - name: install dependencies
+        run: stack --system-ghc build --only-dependencies
       - name: test
-        run: stack test
+        run: stack --system-ghc test
