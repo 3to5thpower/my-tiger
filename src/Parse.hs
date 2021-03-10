@@ -1,7 +1,3 @@
-module Parse
-  ( parse,
-    Exp (..),
-  )
-where
+module Parse (parse) where
 
 import Parse.Parser

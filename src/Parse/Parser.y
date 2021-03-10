@@ -4,12 +4,13 @@ module Parse.Parser (
       Decs,
       Dec(..),
       Type(..),
-      TypeId,
+      TypeId(..),
       TyFields,
       VarDec(..),
       FunDec(..),
       Exp(..),
       LValue(..),
+      Id(..),
 ) where
 import Parse.Lexer
 }
@@ -96,7 +97,7 @@ Exp : LValue { LValue $1}
     | Exp "<>" Exp {NotEqual $1 $3}
     | Exp "&" Exp {And $1 $3}
     | Exp "|" Exp {Or $1 $3}
-    | TypeId records { Record $1 $2}
+    | TypeId "{" records "}" { Record $1 $3}
     | TypeId "[" Exp "]" of Exp {Array $1 $3 $6} 
     | if Exp then Exp {IfThen $2 $4}
     | if Exp then Exp else Exp {IfThenElse $2 $4 $6}
@@ -119,7 +120,7 @@ Type : TypeId { Type $1 }
 TyFields : {[]}
          | Id ":" TypeId { [($1, $3)]}
          | TyFields ","  Id ":" TypeId { ($3, $5) : $1 }
-TypeId : Id { $1 }
+TypeId : id { TypeId $1 }
 VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
        | var Id ":" TypeId ":=" Exp {LongVarDec $2 $4 $6}
 FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
@@ -137,6 +138,7 @@ arguments : {[]}
     | Exp {[$1]}
     | arguments "," Exp { $3 : $1}
 records : {[]}
+    | Id "=" Exp {[($1, $3)]}
     | records "," Id "=" Exp {($3, $5) : $1}
 {
 type Decs = [Dec]
@@ -145,7 +147,7 @@ data Dec = TyDec TypeId Type
          | FunDec FunDec
          deriving (Eq, Show)
 data Type = Type TypeId | RecordType TyFields | ArrayType TypeId deriving(Eq, Show)
-type TypeId = Id
+newtype TypeId = TypeId String deriving (Eq, Show)
 type TyFields = [(Id, TypeId)] 
 data VarDec = ShortVarDec Id Exp
   | LongVarDec Id TypeId Exp

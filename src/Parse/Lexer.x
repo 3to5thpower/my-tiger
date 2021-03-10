@@ -81,7 +81,7 @@ mkL c (pos, _, _, str) len =
   case c of
     LInt -> return (TokenInt ((read tok), pos))
     LName -> return (TokenName (tok, pos))
-    LString -> return (TokenString (tok, pos))
+    LString -> return (TokenString ((take (len - 2) (drop 1 tok)), pos))
     LLet -> return (TokenLet pos)
     LIn -> return (TokenIn pos)
     LWhile -> return (TokenWhile pos)
