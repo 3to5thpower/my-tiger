@@ -1,16 +1,14 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: 73f6130f215996682075cf8f84b306232ced2c4d6328799160c2a9c37b4f111f
 
-name:           my-tiger
+name:           higer
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/my-tiger#readme>
-homepage:       https://github.com/3to5thpower/my-tiger#readme
-bug-reports:    https://github.com/3to5thpower/my-tiger/issues
+description:    Please see the README on GitHub at <https://github.com/githubuser/higer#readme>
+homepage:       https://github.com/3to5thpower/higer#readme
+bug-reports:    https://github.com/3to5thpower/higer/issues
 author:         Genki Nishimi
 maintainer:     nisi3genki@gmail.com
 copyright:      2021 Genki Nishimi
@@ -23,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/3to5thpower/my-tiger
+  location: https://github.com/3to5thpower/higer
 
 library
   exposed-modules:
@@ -31,37 +29,41 @@ library
       Parse.Lexer
       Parse.Parser
   other-modules:
-      Paths_my_tiger
+      Paths_higer
   hs-source-dirs:
       src
   build-depends:
       array
     , base >=4.7 && <5
+    , hspec
   default-language: Haskell2010
 
-executable my-tiger-exe
+executable higer-exe
   main-is: Main.hs
   other-modules:
-      Paths_my_tiger
+      Paths_higer
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
-    , my-tiger
+    , higer
+    , hspec
   default-language: Haskell2010
 
-test-suite my-tiger-test
+test-suite higer-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_my_tiger
+      ParseSpec
+      Paths_higer
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
-    , my-tiger
+    , higer
+    , hspec
   default-language: Haskell2010

@@ -1,6 +1,6 @@
-name:                my-tiger
+name:                higer
 version:             0.1.0.0
-github:              "3to5thpower/my-tiger"
+github:              "3to5thpower/higer"
 license:             MIT
 author:              "Genki Nishimi"
 maintainer:          "nisi3genki@gmail.com"
@@ -17,17 +17,18 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/my-tiger#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/higer#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 - array
+- hspec
 
 library:
   source-dirs: src
 
 executables:
-  my-tiger-exe:
+  higer-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -35,10 +36,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - my-tiger
+    - higer
 
 tests:
-  my-tiger-test:
+  higer-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -46,4 +47,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - my-tiger
+    - higer
