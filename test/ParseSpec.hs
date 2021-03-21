@@ -53,3 +53,26 @@ spec = do
         `shouldBe` Right (Record (TypeId "Student") [(Id "name", String "hoge"), (Id "id", Int 1)])
     it "Array" $ do
       parse "intArray[10] of 0" `shouldBe` Right (Array (TypeId "int") (Int 10) (Int 0))
+    it "If Then" $ do
+      parse "if 1 then 1" `shouldBe` Right (IfThen (Int 1) (Int 1))
+    it "If Then Else" $ do
+      parse "if 0 then 1 else 2" `shouldBe` Right (IfThenElse (Int 0) (Int 1) (Int 2))
+    it "While" $ do
+      parse "while 1 do 2" `shouldBe` Right (WhileDo (Int 1) (Int 2))
+    it "for" $ do
+      parse "for i:=0 to 10 do i" `shouldBe` Right (ForToDo (Id "i") (Int 0) (Int 10) (LValue (Variable (Id "i"))))
+    it "break" $ do
+      parse "while 1 do break" `shouldBe` Right (WhileDo (Int 1) Break)
+    it "let var without type" $ do
+      parse "let var x := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (ShortVarDec (Id "x") (Int 1))] (LValue (Variable (Id "x"))))
+    it "bracket" $ do
+      parse "(42)" `shouldBe` Right (Brack (Int 42))
+  describe "otherExp" $ do
+    it "variable" $ do
+      parse "x" `shouldBe` Right (LValue (Variable (Id "x")))
+    it "property" $ do
+      parse "x.id" `shouldBe` Right (LValue (DotAccess (Variable (Id "x")) (Id "id")))
+    it "index" $ do
+      parse "x[5]" `shouldBe` Right (LValue (Index (Variable (Id "x")) (Int 5)))
+    it "sequencies" $ do
+      parse "(1;2;3;4;5)" `shouldBe` Right (Seq [Int 5, Int 4, Int 3, Int 2, Int 1])
