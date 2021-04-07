@@ -63,16 +63,37 @@ spec = do
       parse "for i:=0 to 10 do i" `shouldBe` Right (ForToDo (Id "i") (Int 0) (Int 10) (LValue (Variable (Id "i"))))
     it "break" $ do
       parse "while 1 do break" `shouldBe` Right (WhileDo (Int 1) Break)
-    it "let var without type" $ do
-      parse "let var x := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (ShortVarDec (Id "x") (Int 1))] (LValue (Variable (Id "x"))))
     it "bracket" $ do
       parse "(42)" `shouldBe` Right (Brack (Int 42))
-  describe "otherExp" $ do
+
+  describe "LValue" $ do
     it "variable" $ do
       parse "x" `shouldBe` Right (LValue (Variable (Id "x")))
     it "property" $ do
       parse "x.id" `shouldBe` Right (LValue (DotAccess (Variable (Id "x")) (Id "id")))
     it "index" $ do
       parse "x[5]" `shouldBe` Right (LValue (Index (Variable (Id "x")) (Int 5)))
-    it "sequencies" $ do
-      parse "(1;2;3;4;5)" `shouldBe` Right (Seq [Int 5, Int 4, Int 3, Int 2, Int 1])
+  describe "Decs" $ do
+    it "type dec" $ do
+      parse "let type myInt = int in 1 end"
+        `shouldBe` Right (LetInEnd [TyDec (TypeId "myInt") (Type (TypeId "int"))] (Int 1))
+    it "var without type" $ do
+      parse "let var x := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (ShortVarDec (Id "x") (Int 1))] (LValue (Variable (Id "x"))))
+    it "var with type" $ do
+      parse "let var x : int := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (LongVarDec (Id "x") (TypeId "int") (Int 1))] (LValue (Variable (Id "x"))))
+    it "function without type" $ do
+      parse "let function f() = 1 in 1 end" `shouldBe` Right (LetInEnd [FunDec (ShortFunDec (Id "f") [] (Int 1))] (Int 1))
+    it "function with type" $ do
+      parse "let function f(x:int,y:int):int = 1 in 1 end"
+        `shouldBe` Right
+          ( LetInEnd
+              [ FunDec
+                  ( LongFunDec
+                      (Id "f")
+                      [(Id "y", TypeId "int"), (Id "x", TypeId "int")]
+                      (TypeId "int")
+                      (Int 1)
+                  )
+              ]
+              (Int 1)
+          )

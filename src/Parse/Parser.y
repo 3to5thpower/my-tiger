@@ -77,7 +77,7 @@ import Parse.Lexer
 %left NEG
 %%
 
-Exp : LValue { LValue $1}
+Exp : TypeId "[" Exp "]" of Exp {Array $1 $3 $6} 
     | nil {Nil}
     | "(" sequencies ")" { Seq $2}
     | "(" ")" {Unit}
@@ -98,7 +98,6 @@ Exp : LValue { LValue $1}
     | Exp "&" Exp {And $1 $3}
     | Exp "|" Exp {Or $1 $3}
     | TypeId "{" records "}" { Record $1 $3}
-    | TypeId "[" Exp "]" of Exp {Array $1 $3 $6} 
     | if Exp then Exp {IfThen $2 $4}
     | if Exp then Exp else Exp {IfThenElse $2 $4 $6}
     | while Exp do Exp {WhileDo $2 $4}
@@ -106,6 +105,7 @@ Exp : LValue { LValue $1}
     | break {Break}
     | let Decs in Exp end {LetInEnd $2 $4}
     | "(" Exp ")" {Brack $2}
+    | LValue { LValue $1}
 
 
 Decs : {[]}
