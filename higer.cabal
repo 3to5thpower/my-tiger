@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Parse
+      Parse.Data
       Parse.Lexer
       Parse.Parser
   other-modules:
