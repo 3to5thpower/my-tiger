@@ -1,5 +1,6 @@
 module ParseSpec where
 
+import Parse.Data
 import Parse.Parser
 import Test.Hspec
 
@@ -50,9 +51,9 @@ spec = do
       parse "0 | 1" `shouldBe` Right (Or (Int 0) (Int 1))
     it "Record" $ do
       parse "Student { id=1, name =\"hoge\" }"
-        `shouldBe` Right (Record (TypeId "Student") [(Id "name", String "hoge"), (Id "id", Int 1)])
+        `shouldBe` Right (Record (Id "Student") [(Id "name", String "hoge"), (Id "id", Int 1)])
     it "Array" $ do
-      parse "intArray[10] of 0" `shouldBe` Right (Array (TypeId "int") (Int 10) (Int 0))
+      parse "intArray[10] of 0" `shouldBe` Right (Array (Id "intArray") (Int 10) (Int 0))
     it "If Then" $ do
       parse "if 1 then 1" `shouldBe` Right (IfThen (Int 1) (Int 1))
     it "If Then Else" $ do
@@ -76,11 +77,11 @@ spec = do
   describe "Decs" $ do
     it "type dec" $ do
       parse "let type myInt = int in 1 end"
-        `shouldBe` Right (LetInEnd [TyDec (TypeId "myInt") (Type (TypeId "int"))] (Int 1))
+        `shouldBe` Right (LetInEnd [TyDec (Id "myInt") (Type (Id "int"))] (Int 1))
     it "var without type" $ do
       parse "let var x := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (ShortVarDec (Id "x") (Int 1))] (LValue (Variable (Id "x"))))
     it "var with type" $ do
-      parse "let var x : int := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (LongVarDec (Id "x") (TypeId "int") (Int 1))] (LValue (Variable (Id "x"))))
+      parse "let var x : int := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (LongVarDec (Id "x") (Id "int") (Int 1))] (LValue (Variable (Id "x"))))
     it "function without type" $ do
       parse "let function f() = 1 in 1 end" `shouldBe` Right (LetInEnd [FunDec (ShortFunDec (Id "f") [] (Int 1))] (Int 1))
     it "function with type" $ do
@@ -90,8 +91,8 @@ spec = do
               [ FunDec
                   ( LongFunDec
                       (Id "f")
-                      [(Id "y", TypeId "int"), (Id "x", TypeId "int")]
-                      (TypeId "int")
+                      [(Id "y", Id "int"), (Id "x", Id "int")]
+                      (Id "int")
                       (Int 1)
                   )
               ]

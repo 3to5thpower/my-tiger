@@ -2,7 +2,6 @@ module Parse.Data
   ( Decs,
     Dec (..),
     Type (..),
-    TypeId (..),
     TyFields,
     VarDec (..),
     FunDec (..),
@@ -15,25 +14,23 @@ where
 type Decs = [Dec]
 
 data Dec
-  = TyDec TypeId Type
+  = TyDec Id Type
   | VarDec VarDec
   | FunDec FunDec
   deriving (Eq, Show)
 
-data Type = Type TypeId | RecordType TyFields | ArrayType TypeId deriving (Eq, Show)
+data Type = Type Id | RecordType TyFields | ArrayType Id deriving (Eq, Show)
 
-newtype TypeId = TypeId String deriving (Eq, Show)
-
-type TyFields = [(Id, TypeId)]
+type TyFields = [(Id, Id)]
 
 data VarDec
   = ShortVarDec Id Exp
-  | LongVarDec Id TypeId Exp
+  | LongVarDec Id Id Exp
   deriving (Eq, Show)
 
 data FunDec
   = ShortFunDec Id TyFields Exp
-  | LongFunDec Id TyFields TypeId Exp
+  | LongFunDec Id TyFields Id Exp
   deriving (Eq, Show)
 
 data LValue
@@ -65,8 +62,8 @@ data Exp
   | NotEqual Exp Exp
   | And Exp Exp
   | Or Exp Exp
-  | Record TypeId [(Id, Exp)]
-  | Array TypeId Exp Exp
+  | Record Id [(Id, Exp)]
+  | Array Id Exp Exp
   | IfThen Exp Exp
   | IfThenElse Exp Exp Exp
   | WhileDo Exp Exp

@@ -57,6 +57,7 @@ import Parse.Data
     "]" {TokenRBracket _}
     
 
+%right of
 %right in
 %left "|"
 %left "&"
@@ -66,11 +67,40 @@ import Parse.Data
 %left NEG
 %%
 
-Exp : TypeId "[" Exp "]" of Exp {Array $1 $3 $6} 
-    | nil {Nil}
+Program : Exp { $1 }
+
+Decs : {[]}
+     | TyDec Decs {$1 : $2}
+     | VarDec Decs { VarDec $1 : $2}
+     | FunDec Decs {FunDec $1 : $2}
+
+TyDec : type Id "=" Type { TyDec $2 $4}
+
+Type : Id { Type $1 }
+     | "{" TyFields "}" { RecordType $2 }
+     | array of Id { ArrayType $3 }
+TyFields : {[]}
+         | Id ":" Id { [($1, $3)]}
+         | TyFields ","  Id ":" Id { ($3, $5) : $1 }
+VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
+       | var Id ":" Id ":=" Exp {LongVarDec $2 $4 $6}
+FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
+       | function Id "(" TyFields ")" ":" Id "=" Exp {LongFunDec $2 $4 $7 $9}
+
+
+LValue : Id {Variable $1}
+       | LValue "." Id {DotAccess $1 $3}
+       | Id "." Id { DotAccess $1 $3}
+       | LValue "[" Exp "]" {Index $1 $3}
+       | Id "[" Id "]" {Index $1 $3}
+
+Id : id { Id $1}
+
+Exp : nil {Nil}
     | "(" sequencies ")" { Seq $2}
     | "(" ")" {Unit}
-    | int {Int $1}
+    | int {Int $1cd
+    }
     | string {String $1}
     | Id "(" arguments ")" { FunCall $1 $3}
     | "-" Exp %prec NEG {Negate $2}
@@ -86,7 +116,7 @@ Exp : TypeId "[" Exp "]" of Exp {Array $1 $3 $6}
     | Exp "<>" Exp {NotEqual $1 $3}
     | Exp "&" Exp {And $1 $3}
     | Exp "|" Exp {Or $1 $3}
-    | TypeId "{" records "}" { Record $1 $3}
+    | Id "{" records "}" { Record $1 $3}
     | if Exp then Exp {IfThen $2 $4}
     | if Exp then Exp else Exp {IfThenElse $2 $4 $6}
     | while Exp do Exp {WhileDo $2 $4}
@@ -95,31 +125,8 @@ Exp : TypeId "[" Exp "]" of Exp {Array $1 $3 $6}
     | let Decs in Exp end {LetInEnd $2 $4}
     | "(" Exp ")" {Brack $2}
     | LValue { LValue $1}
+    | Id "[" Exp "]" of Exp {Array $1 $3 $6} 
 
-
-Decs : {[]}
-     | Decs Dec { $2 : $1 } 
-
-Dec : type TypeId "=" Type { TyDec $2 $4 }
-    | VarDec { VarDec $1 }
-    | FunDec { FunDec $1 }
-Type : TypeId { Type $1 }
-     | "{" TyFields "}" { RecordType $2 }
-     | array of TypeId { ArrayType $3 }
-TyFields : {[]}
-         | Id ":" TypeId { [($1, $3)]}
-         | TyFields ","  Id ":" TypeId { ($3, $5) : $1 }
-TypeId : id { TypeId $1 }
-VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
-       | var Id ":" TypeId ":=" Exp {LongVarDec $2 $4 $6}
-FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
-       | function Id "(" TyFields ")" ":" TypeId "=" Exp {LongFunDec $2 $4 $7 $9}
-
-
-LValue : Id {Variable $1}
-       | LValue "." Id {DotAccess $1 $3}
-       | LValue "[" Exp "]" {Index $1 $3}
-Id : id { Id $1}
 
 sequencies : Exp {[$1]}
     | sequencies ";" Exp { $3 : $1 }
@@ -129,6 +136,7 @@ arguments : {[]}
 records : {[]}
     | Id "=" Exp {[($1, $3)]}
     | records "," Id "=" Exp {($3, $5) : $1}
+
 {
 parseError :: Token -> Alex a
 parseError tok = alexError $ "Parse Error: " ++ show tok
