@@ -22,7 +22,7 @@ spec = do
     it "funcall with arguments" $ do
       -- function arguments list is reversed
       parse "func(x, 2)"
-        `shouldBe` Right (FunCall (Id "func") [Int 2, LValue (Variable (Id "x"))])
+        `shouldBe` Right (FunCall (Id "func") [LValue (Variable (Id "x")), Int 2])
     it "Negate" $ do
       parse "-2" `shouldBe` Right (Negate (Int 2))
     it "Plus" $ do
@@ -51,7 +51,7 @@ spec = do
       parse "0 | 1" `shouldBe` Right (Or (Int 0) (Int 1))
     it "Record" $ do
       parse "Student { id=1, name =\"hoge\" }"
-        `shouldBe` Right (Record (Id "Student") [(Id "name", String "hoge"), (Id "id", Int 1)])
+        `shouldBe` Right (Record (Id "Student") [(Id "id", Int 1), (Id "name", String "hoge")])
     it "Array" $ do
       parse "intArray[10] of 0" `shouldBe` Right (Array (Id "intArray") (Int 10) (Int 0))
     it "If Then" $ do
@@ -91,7 +91,7 @@ spec = do
               [ FunDec
                   ( LongFunDec
                       (Id "f")
-                      [(Id "y", Id "int"), (Id "x", Id "int")]
+                      [(Id "x", Id "int"), (Id "y", Id "int")]
                       (Id "int")
                       (Int 1)
                   )

@@ -57,10 +57,12 @@ import Parse.Data
     "]" {TokenRBracket _}
     
 
-%right of
 %right in
-%left "|"
-%left "&"
+%right of
+%nonassoc do
+%nonassoc else
+%nonassoc ':='
+%left "|" "&"
 %nonassoc "<" ">" "<=" ">=" "=" "<>"
 %left "+" "-"
 %left "*" "/"
@@ -69,10 +71,10 @@ import Parse.Data
 
 Program : Exp { $1 }
 
-Decs : {[]}
-     | TyDec Decs {$1 : $2}
+Decs : TyDec Decs {$1 : $2}
      | VarDec Decs { VarDec $1 : $2}
      | FunDec Decs {FunDec $1 : $2}
+     | {[]}
 
 TyDec : type Id "=" Type { TyDec $2 $4}
 
@@ -81,7 +83,7 @@ Type : Id { Type $1 }
      | array of Id { ArrayType $3 }
 TyFields : {[]}
          | Id ":" Id { [($1, $3)]}
-         | TyFields ","  Id ":" Id { ($3, $5) : $1 }
+         | TyFields ","  Id ":" Id { $1 ++ [($3, $5)]}
 VarDec : var Id ":=" Exp {ShortVarDec $2 $4}
        | var Id ":" Id ":=" Exp {LongVarDec $2 $4 $6}
 FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
@@ -89,18 +91,17 @@ FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
 
 
 LValue : Id {Variable $1}
-       | LValue "." Id {DotAccess $1 $3}
-       | Id "." Id { DotAccess $1 $3}
-       | LValue "[" Exp "]" {Index $1 $3}
-       | Id "[" Id "]" {Index $1 $3}
+       | LValue "." Id { DotAccess $1 $3}
+       | Id "[" Exp "]" {Index (Variable $1) $3}
+       | LValue "[" Exp "]"  {Index $1 $3}
 
 Id : id { Id $1}
 
-Exp : nil {Nil}
+Exp : LValue {LValue $1}
+    | nil {Nil}
     | "(" sequencies ")" { Seq $2}
     | "(" ")" {Unit}
-    | int {Int $1cd
-    }
+    | int {Int $1}
     | string {String $1}
     | Id "(" arguments ")" { FunCall $1 $3}
     | "-" Exp %prec NEG {Negate $2}
@@ -124,18 +125,16 @@ Exp : nil {Nil}
     | break {Break}
     | let Decs in Exp end {LetInEnd $2 $4}
     | "(" Exp ")" {Brack $2}
-    | LValue { LValue $1}
     | Id "[" Exp "]" of Exp {Array $1 $3 $6} 
 
-
 sequencies : Exp {[$1]}
-    | sequencies ";" Exp { $3 : $1 }
+    | sequencies ";" Exp { $1 ++ [$3] }
 arguments : {[]}
     | Exp {[$1]}
-    | arguments "," Exp { $3 : $1}
+    | arguments "," Exp { $1 ++ [$3] }
 records : {[]}
     | Id "=" Exp {[($1, $3)]}
-    | records "," Id "=" Exp {($3, $5) : $1}
+    | records "," Id "=" Exp {$1 ++ [($3, $5)]}
 
 {
 parseError :: Token -> Alex a
@@ -143,3 +142,4 @@ parseError tok = alexError $ "Parse Error: " ++ show tok
 
 parse s = runAlex s parser
 }
+  
