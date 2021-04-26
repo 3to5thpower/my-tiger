@@ -20,7 +20,6 @@ spec = do
     it "funcall without arguments" $ do
       parse "func()" `shouldBe` Right (FunCall (Id "func") [])
     it "funcall with arguments" $ do
-      -- function arguments list is reversed
       parse "func(x, 2)"
         `shouldBe` Right (FunCall (Id "func") [LValue (Variable (Id "x")), Int 2])
     it "Negate" $ do
@@ -98,3 +97,9 @@ spec = do
               ]
               (Int 1)
           )
+  
+  describe "complex expression" $ do
+    it "index with lvalue" $ do
+      parse "x.id[5]" `shouldBe` Right (LValue (Index (DotAccess (Variable (Id "x")) (Id "id")) (Int 5)))
+    it "double array" $ do
+      parse "x[5][0]" `shouldBe` Right (LValue (Index (Index (Variable (Id "x")) (Int 5)) (Int 0)))

@@ -91,6 +91,7 @@ FunDec : function Id "(" TyFields ")" "=" Exp {ShortFunDec $2 $4 $7}
 
 
 LValue : Id {Variable $1}
+       | Id "." Id { DotAccess (Variable $1) $3}
        | LValue "." Id { DotAccess $1 $3}
        | Id "[" Exp "]" {Index (Variable $1) $3}
        | LValue "[" Exp "]"  {Index $1 $3}
