@@ -97,7 +97,7 @@ spec = do
               ]
               (Int 1)
           )
-  
+
   describe "complex expression" $ do
     it "index with lvalue" $ do
       parse "x.id[5]" `shouldBe` Right (LValue (Index (DotAccess (Variable (Id "x")) (Id "id")) (Int 5)))

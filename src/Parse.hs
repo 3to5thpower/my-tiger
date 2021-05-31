@@ -1,3 +1,3 @@
 module Parse (parse) where
 
-import Parse.Parser
+import Parse.Parser (parse)

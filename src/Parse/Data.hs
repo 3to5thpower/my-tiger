@@ -70,5 +70,6 @@ data Exp
   | ForToDo Id Exp Exp Exp
   | Break
   | LetInEnd Decs Exp
+  | Assign LValue Exp
   | Brack Exp
   deriving (Eq, Show)
