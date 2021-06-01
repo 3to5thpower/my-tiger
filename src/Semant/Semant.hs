@@ -1,7 +1,7 @@
 module Semant.Semant where
 
 import Control.Monad (forM, liftM)
-import Data.Functor ((<&>))
+import Data.Functor ((<&>), ($>))
 import qualified Data.Map as M
 import Parse.Data
 import qualified Semant.Types as T
@@ -37,24 +37,25 @@ transExp venv tenv exp = trexp exp
       n@(Int x) -> Right $ ExpTy n T.Int
       s@(String str) -> Right $ ExpTy s T.String
       --- operator for int
-      Plus e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Minus e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Times e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Div e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Less e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      LessEqual e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Greater e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      GreaterEqual e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Equal e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      NotEqual e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      And e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
-      Or e1 e2 -> checkInt e1 >> checkInt e2 >> return T.Int <&> ExpTy exp
+      Plus e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Minus e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Times e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Div e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Less e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      LessEqual e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Greater e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      GreaterEqual e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Equal e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      NotEqual e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      And e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
+      Or e1 e2 -> checkInt e1 *> checkInt e2 $> T.Int <&> ExpTy exp
       Negate e -> checkInt e >> return T.Int <&> ExpTy exp
       --- other pure expression
-      Seq (e : es) -> trexp e >> trexp (Seq es)
-      Array typeid len init -> do
-        elemTy <- transTy tenv (Type typeid)
-        checkInt len >> checkInt init >> return elemTy <&> ExpTy exp
+      Seq [e] -> trexp e
+      Seq (e : es) -> trexp e *> trexp (Seq es)
+      Array typeid len init -> 
+        checkInt len *> checkInt init *> transTy tenv (Type typeid) 
+        <&> ExpTy exp
       LValue l -> trvar l
       FunCall (Id funname) args -> case M.lookup funname venv of
         Nothing -> Left $ "undefined function: " ++ funname
@@ -98,6 +99,9 @@ transExp venv tenv exp = trexp exp
                 )
          in trexp whileLetExp
       Assign lvalue exp -> Right $ ExpTy exp T.Unit
+      LetInEnd decs exp -> do
+        (newVEnv, newTEnv) <- transDec venv tenv decs
+        transExp newVEnv newTEnv exp
     --- trexp end
     checkType t1 t2 =
       if t1 == t2
@@ -125,12 +129,19 @@ transExp venv tenv exp = trexp exp
       _ -> Left $ "undefined variable: " ++ show field
     checkRecord v = trvar v <&> ty
 
-transDec :: VEnv -> TEnv -> Dec -> Either String (VEnv, TEnv)
-transDec venv tenv dec = case dec of
-  TyDec name ty -> Right (venv, M.insert (show name) (transTy tenv ty) tenv)
-  VarDec vdec -> trvardec vdec
+transDec :: VEnv -> TEnv -> [Dec] -> Either String (VEnv, TEnv)
+transDec v t [] = Right (v, t)
+transDec v t (dec:decs) = do
+  (venv, tenv) <- trDec v t dec
+  transDec venv tenv decs
   where
-    trvardec vdec = case vdec of
+    trDec:: VEnv -> TEnv -> Dec -> Either String (VEnv, TEnv)
+    trDec venv tenv dec = case dec of
+      TyDec name ty -> do
+        ty <- transTy tenv ty
+        return (venv, M.insert (show name) ty tenv)
+      VarDec vdec -> trvardec venv tenv vdec
+    trvardec venv tenv vdec = case vdec of
       ShortVarDec name exp -> case transExp venv tenv exp of
         Right ExpTy {Semant.Semant.exp = _, ty = ty} -> Right (M.insert (show name) (T.VarEntry ty) venv, tenv)
         Left e -> Left e
