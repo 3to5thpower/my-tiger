@@ -77,6 +77,10 @@ spec = do
     it "type dec" $ do
       parse "let type myInt = int in 1 end"
         `shouldBe` Right (LetInEnd [TyDec (Id "myInt") (Type (Id "int"))] (Int 1))
+      parse "let type intArray = array of int in 1 end"
+        `shouldBe` Right (LetInEnd [TyDec (Id "intArray") (ArrayType (Id "int"))] (Int 1))
+      parse "let type student = {id : int, name: string} in 1 end"
+        `shouldBe` Right (LetInEnd [TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")])] (Int 1))
     it "var without type" $ do
       parse "let var x := 1 in x end" `shouldBe` Right (LetInEnd [VarDec (ShortVarDec (Id "x") (Int 1))] (LValue (Variable (Id "x"))))
     it "var with type" $ do
