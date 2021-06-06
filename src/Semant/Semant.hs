@@ -8,24 +8,12 @@ import qualified Semant.Types as T
 
 data ExpTy = ExpTy {exp :: Exp, ty :: T.Ty} deriving (Show, Eq)
 
-semant :: Either String Exp -> Either String Exp
-semant (Left s) = Left s
-semant (Right e) = Right e
-
-semantSimpleExp :: Exp -> T.Ty
-semantSimpleExp e = case e of
-  String s -> T.String
-  Int n -> T.Int
-  Nil -> T.Nil
-  Unit -> T.Unit
-  Negate e -> semantSimpleExp e
+semant :: Exp -> Either String ExpTy
+semant = transExp T.baseDataEnv T.baseTypesEnv 
 
 type VEnv = M.Map T.Symbol T.EnvEntry
 
 type TEnv = M.Map T.Symbol T.Ty
-
--- transVar :: VEnv -> TEnv -> LValue -> Either String ExpTy
--- transVar venv tenv lvalue =
 
 transExp :: VEnv -> TEnv -> Exp -> Either String ExpTy
 transExp venv tenv exp = trexp exp
@@ -162,6 +150,7 @@ transDec v t (dec:decs) = do
         ty <- transTy tenv ty
         return (venv, M.insert name ty tenv)
       VarDec vdec -> trvardec venv tenv vdec
+      FunDec fdec -> trfundec venv tenv fdec
     trvardec :: VEnv -> TEnv -> VarDec -> Either String (VEnv, TEnv)
     trvardec venv tenv vdec = case vdec of
       ShortVarDec name exp -> case transExp venv tenv exp of

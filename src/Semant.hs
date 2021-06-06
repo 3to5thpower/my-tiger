@@ -1,1 +1,3 @@
-module Semant where
+module Semant(semant) where
+
+import Semant.Semant(semant)
