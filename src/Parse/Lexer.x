@@ -14,13 +14,14 @@ where
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
-$graphic    = $printable # $white
+$graphic    = $printable 
 
 @string     = \" ($graphic # \")* \"
 
 tokens :-
   $white+				;
   "//".*				;
+  "/*" .* "*/" ; 
   while { mkL LWhile}
   for {mkL LFor}
   to {mkL LTo}
