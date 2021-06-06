@@ -6,7 +6,7 @@ import qualified Data.Map as M
 import Parse.Data
 import qualified Semant.Types as T
 
-data ExpTy = ExpTy {exp :: Exp, ty :: T.Ty} deriving (Show)
+data ExpTy = ExpTy {exp :: Exp, ty :: T.Ty} deriving (Show, Eq)
 
 semant :: Either String Exp -> Either String Exp
 semant (Left s) = Left s
@@ -53,9 +53,17 @@ transExp venv tenv exp = trexp exp
       --- other pure expression
       Seq [e] -> trexp e
       Seq (e : es) -> trexp e *> trexp (Seq es)
-      Array typeid len init -> 
-        checkInt len *> checkInt init *> transTy tenv (Type typeid) 
+      Array (Id typeid) len init -> 
+        checkInt len *> checkInt init *> find tenv typeid 
         <&> ExpTy exp
+      Record (Id typeId) fields -> do
+        record <- find tenv typeId
+        case record of 
+          T.Record _ _ -> return ()
+          _ -> Left $ "the type " ++ typeId ++ " is not a record"
+        let T.Record tyfields _ = record
+        checkRecordField fields tyfields
+        return $ ExpTy exp record
       LValue l -> trvar l
       FunCall (Id funname) args -> case M.lookup funname venv of
         Nothing -> Left $ "undefined function: " ++ funname
@@ -128,6 +136,19 @@ transExp venv tenv exp = trexp exp
       Right e -> Right e
       _ -> Left $ "undefined variable: " ++ show field
     checkRecord v = trvar v <&> ty
+    checkRecordField :: [(Id, Exp)] -> [(String, T.Ty)] -> Either String ()
+    checkRecordField fields tyfields = mapM_ f fields
+      where
+        f :: (Id, Exp) -> Either String ()
+        f (Id name, exp) = do
+          exptype <- trexp exp <&> ty
+          ty <- case lookup name tyfields of
+            Nothing -> Left $ "undefined field: " ++ name
+            Just ty -> Right ty
+          if ty == exptype
+            then Right ()
+            else Left $ "field type mismatch expected: " ++ show ty ++ " but actual: " ++ show exptype
+
 
 transDec :: VEnv -> TEnv -> [Dec] -> Either String (VEnv, TEnv)
 transDec v t [] = Right (v, t)
@@ -137,19 +158,72 @@ transDec v t (dec:decs) = do
   where
     trDec:: VEnv -> TEnv -> Dec -> Either String (VEnv, TEnv)
     trDec venv tenv dec = case dec of
-      TyDec name ty -> do
+      TyDec (Id name) ty -> do
         ty <- transTy tenv ty
-        return (venv, M.insert (show name) ty tenv)
+        return (venv, M.insert name ty tenv)
       VarDec vdec -> trvardec venv tenv vdec
+    trvardec :: VEnv -> TEnv -> VarDec -> Either String (VEnv, TEnv)
     trvardec venv tenv vdec = case vdec of
       ShortVarDec name exp -> case transExp venv tenv exp of
         Right ExpTy {Semant.Semant.exp = _, ty = ty} -> Right (M.insert (show name) (T.VarEntry ty) venv, tenv)
         Left e -> Left e
-      LongVarDec name ty exp -> case transExp venv tenv exp of
-        Right ExpTy {Semant.Semant.exp = _, ty = inferedTy} ->
-          if transTy tenv ty == inferedTy
-            then Right (M.insert (show name) (T.VarEntry ty) venv, tenv)
-            else Left $ "Couldn't match expected type: " ++ show inferedTy ++ "actual: " ++ show ty
+      LongVarDec name (Id typeId) exp -> case transExp venv tenv exp of
+        Right ExpTy {Semant.Semant.exp = _, ty = inferedTy} -> do
+          actualType <- find tenv typeId
+          if actualType == inferedTy
+            then Right (M.insert (show name) (T.VarEntry actualType) venv, tenv)
+            else Left $ "Couldn't match expected type: " ++ show inferedTy ++ "but actual: " ++ typeId
+    trfundec :: VEnv -> TEnv -> FunDec -> Either String (VEnv, TEnv)
+    trfundec venv tenv fdec = case fdec of
+      ShortFunDec (Id name) tyfields body -> do
+        venv <- insertArgsToEnv venv tenv tyfields
+        args <- tyListFromTyFields tenv tyfields
+        retType <- transExp venv tenv body <&> ty
+        return (M.insert name (T.FunEntry args retType) venv, tenv)
+      LongFunDec (Id name) tyfields (Id retTypeId) body -> do
+        venv <- insertArgsToEnv venv tenv tyfields
+        args <- tyListFromTyFields tenv tyfields
+        retType <- transExp venv tenv body <&> ty
+        specifiedretType <- find tenv retTypeId
+        if retType /= specifiedretType
+          then Left $ "Couldn't match expected type: " 
+            ++ show retType ++ " but actual: " ++ retTypeId
+          else return (M.insert name (T.FunEntry args retType) venv, tenv)
+
+find :: TEnv -> T.Symbol -> Either String T.Ty
+find tenv name = case tenv M.!? name of
+  Nothing -> Left $ "undefined type of \"" ++ name
+  Just ty -> Right ty
+
+insertArgsToEnv :: VEnv -> TEnv -> TyFields -> Either String VEnv
+insertArgsToEnv venv tenv [] = Right venv
+insertArgsToEnv venv tenv (x:xs) = do
+  insertedvenv <- insertArgToEnv tenv venv x
+  insertArgsToEnv insertedvenv tenv xs
+  where
+    insertArgToEnv :: TEnv -> VEnv -> (Id, Id) -> Either String VEnv
+    insertArgToEnv tenv venv (Id varId, Id typeId) =  case tenv M.!? typeId of
+      Nothing -> Left $ "undefined type: \"" ++ typeId ++ "\" of variable \"" ++ varId ++ "\""
+      Just ty -> Right $ M.insert varId (T.VarEntry  ty) venv 
+
+tyListFromTyFields :: TEnv -> TyFields -> Either String [T.Ty]
+tyListFromTyFields tenv = mapM (idToTy tenv)
+  where 
+    idToTy :: TEnv -> (Id, Id) -> Either String T.Ty
+    idToTy tenv (Id varId, Id typeId) = case tenv M.!? typeId of
+      Nothing -> Left $ "undefined type: \"" ++ typeId ++ " of variable \"" ++ varId ++ "\""
+      Just ty -> Right ty
 
 transTy :: TEnv -> Type -> Either String T.Ty
-transTy tenv ty = Left ""
+transTy tenv (Type (Id name)) = find tenv name
+transTy tenv (ArrayType (Id name)) = do
+  ty <- find tenv name
+  return $ T.Array ty 0
+transTy tenv (RecordType tyfields) = do
+  fields <- mapM f tyfields
+  return $ T.Record fields 0
+  where
+    f (Id fieldName, Id typeId) = do
+      ty <- find tenv typeId
+      return (fieldName, ty)
+
