@@ -81,13 +81,6 @@ spec = do
     it "assign" $ do
       check (Assign (Variable (Id "x")) (Int 42)) T.Unit
   describe "other expressions" $ do
-    it "lvalue" $ do
-      check (LValue (Variable (Id "foo"))) T.Int
-      check (LValue (Variable (Id "bar"))) $ T.Array T.Int 0
-      check (LValue (Index (Variable (Id "bar")) (Int 0))) T.Int
-      check (LValue (Variable (Id "bal"))) $ T.Record [("name", T.String), ("id", T.Int)] 0
-      check (LValue (DotAccess (Variable (Id "bal")) (Id "name"))) T.String
-      check (LValue (DotAccess (Variable (Id "bal")) (Id "id"))) T.Int
     it "array" $ do
       check (Array (Id "intArray") (Int 5) (Int 0)) $ T.Array T.Int 0
     it "record" $ do
@@ -95,10 +88,26 @@ spec = do
         T.Record [("name", T.String), ("id", T.Int)] 0
     it "funcall" $ do
       check (FunCall (Id "substr") [String "hoge", Int 0, Int 2]) T.String
-    it "let" $ do
+  describe "lvalue" $ do
+    it "variable" $ do
+      check (LValue (Variable (Id "foo"))) T.Int
+    it "array variable" $ do
+      check (LValue (Variable (Id "bar"))) $ T.Array T.Int 0
+    it "array access" $ do
+      check (LValue (Index (Variable (Id "bar")) (Int 0))) T.Int
+    it "record variable" $ do
+      check (LValue (Variable (Id "bal"))) $ T.Record [("name", T.String), ("id", T.Int)] 0
+    it "record access" $ do
+      check (LValue (DotAccess (Variable (Id "bal")) (Id "name"))) T.String
+      check (LValue (DotAccess (Variable (Id "bal")) (Id "id"))) T.Int
+  describe "let" $ do
+    it "short variable declaration" $ do
       check (LetInEnd [VarDec (ShortVarDec (Id "foo") (String "hogehoge"))] $ LValue (Variable (Id "foo"))) T.String
+    it "long variable declaration" $ do
       check (LetInEnd [VarDec (LongVarDec (Id "foo") (Id "string") (String "hogehoge"))] $ LValue (Variable (Id "foo"))) T.String
+    it "short function declaration" $ do
       check (LetInEnd [FunDec (ShortFunDec (Id "f") [] (Int 1))] (FunCall (Id "f") [])) T.Int
+    it "long function declaration" $ do
       check
         ( LetInEnd
             [ FunDec
@@ -112,7 +121,11 @@ spec = do
             (FunCall (Id "f") [Int 1, Int 2])
         )
         T.Int
+    it "normal type Declaration" $ do
+      check (LetInEnd [TyDec (Id "myInt") (Type (Id "int")), VarDec (LongVarDec (Id "x") (Id "myInt") (Int 1))] (LValue (Variable (Id "x")))) T.Int
+    it "array type Declaration" $ do
       check (LetInEnd [TyDec (Id "intArray") (ArrayType (Id "int"))] (Array (Id "intArray") (Int 10) (Int 0))) $
         T.Array T.Int 0
+    it "record type Declaration" $ do
       check (LetInEnd [TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")])] (Record (Id "Student") [(Id "id", Int 1), (Id "name", String "hoge")])) $
         T.Record [("name", T.String), ("id", T.Int)] 0
