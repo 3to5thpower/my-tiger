@@ -6,6 +6,5 @@ import Semant
 main :: IO ()
 main = do
   s <- getContents
-  let ast = parse s
-  print ast
-  print (ast >>= semant)
+  print (parse s)
+  print (parse s >>= semant)

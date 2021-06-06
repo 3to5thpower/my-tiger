@@ -37,7 +37,7 @@ transExp venv tenv exp = trexp exp
       NotEqual e1 e2 -> checkDoubleArgsInt e1 e2
       And e1 e2 -> checkDoubleArgsInt e1 e2
       Or e1 e2 -> checkDoubleArgsInt e1 e2
-      Negate e -> trexp e >>= checkInt . Semant.Semant.exp <&> ExpTy exp
+      Negate e -> checkInt e <&> ExpTy exp
       --- other pure expression
       Seq [] -> Right $ ExpTy exp T.Unit
       Seq [e] -> trexp e
@@ -99,18 +99,7 @@ transExp venv tenv exp = trexp exp
         (newVEnv, newTEnv) <- transDec venv tenv decs
         transExp newVEnv newTEnv exp
     --- trexp end
-    checkDoubleArgsInt' e1 e2 = do
-      exp1 <- Semant.Semant.exp <$> trexp e1
-      checkInt exp1
-      exp2 <- Semant.Semant.exp <$> trexp e2
-      checkInt exp2
-      return $ ExpTy exp T.Int
-    checkDoubleArgsInt :: Exp -> Exp -> Either String ExpTy
-    checkDoubleArgsInt e1 e2 =
-      trexp e1 >>= checkType T.Int . ty
-        >> trexp e2 >>= checkType T.Int . ty
-        <&> ExpTy exp
-
+    checkDoubleArgsInt e1 e2 = checkInt e1 >> checkInt e2 <&> ExpTy exp
     checkType t1 t2 =
       if t1 == t2
         then Right t1
@@ -118,15 +107,16 @@ transExp venv tenv exp = trexp exp
     checkUnit e = case e of
       Unit -> Right T.Unit
       e -> Left $ "type mismatch: expected (), actual " ++ show e
-    checkInt e = case e of
-      Int _ -> Right T.Int
-      e -> Left $ "type mismatch: expected Int, actual " ++ show e
+    checkInt e = case trexp e <&> ty of
+      Right T.Int -> Right T.Int
+      Left e -> Left e
+      _ -> Left $ "type mismatch: expected Int, actual " ++ show e
     trvar lvalue = case lvalue of
       Variable (Id name) -> case venv M.!? name of
         Just (T.VarEntry ty) -> Right $ ExpTy exp ty
         _ -> Left $ "undefined variable: " ++ name
       DotAccess v (Id name) -> checkRecord v name <&> ExpTy exp
-      Index v n -> case checkInt n >> trvar v <&> ty of
+      Index v n -> case trexp n >>= checkType T.Int . ty >> trvar v <&> ty of
         Right (T.Array ty _) -> Right $ ExpTy exp ty
         _ -> Left $ "undefined variable: " ++ show v
     checkRecord lv field = case trvar lv <&> ty of
@@ -161,7 +151,8 @@ transDec v t (dec : decs) = do
         ty <- transTy tenv ty
         return (venv, M.insert name ty tenv)
       VarDec vdec -> trvardec venv tenv vdec
-      FunDec fdec -> trfundec venv tenv fdec
+      FunDec fdec@(ShortFunDec (Id name) _ _) -> trfundec (M.insert name undefined venv) tenv fdec
+      FunDec fdec@(LongFunDec (Id name) _ _ _) -> trfundec (M.insert name undefined venv) tenv fdec
     trvardec :: VEnv -> TEnv -> VarDec -> Either String (VEnv, TEnv)
     trvardec venv tenv vdec = case vdec of
       ShortVarDec (Id name) exp -> case transExp venv tenv exp of
