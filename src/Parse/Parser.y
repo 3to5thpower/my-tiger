@@ -118,6 +118,7 @@ Exp : LValue {LValue $1}
     | Exp "<>" Exp {NotEqual $1 $3}
     | Exp "&" Exp {And $1 $3}
     | Exp "|" Exp {Or $1 $3}
+    | LValue ":=" Exp {Assign $1 $3}
     | Id "{" records "}" { Record $1 $3}
     | if Exp then Exp {IfThen $2 $4}
     | if Exp then Exp else Exp {IfThenElse $2 $4 $6}
