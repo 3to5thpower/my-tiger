@@ -1,22 +1,29 @@
-module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv) where
+module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv, find) where
 
-import qualified Data.Map as Map
+import qualified Data.Map as M
 
 type Symbol = String
-
-type Table = Map.Map Symbol
 
 data EnvEntry
   = VarEntry {ty :: Ty}
   | FunEntry {formals :: [Ty], result :: Ty}
   deriving (Eq, Show)
 
-baseTypesEnv :: Map.Map Symbol Ty
-baseTypesEnv = Map.fromList [("int", Int), ("string", String)]
+type VEnv = M.Map Symbol EnvEntry
 
-baseDataEnv :: Map.Map Symbol EnvEntry
+type TEnv = M.Map Symbol Ty
+
+find :: TEnv -> [Char] -> Either [Char] Ty
+find tenv name = case tenv M.!? name of
+  Nothing -> Left $ "undefined type of \"" ++ name
+  Just ty -> Right ty
+
+baseTypesEnv :: M.Map Symbol Ty
+baseTypesEnv = M.fromList [("int", Int), ("string", String)]
+
+baseDataEnv :: M.Map Symbol EnvEntry
 baseDataEnv =
-  Map.fromList
+  M.fromList
     [ ("print", FunEntry [String] Unit),
       ("flush", FunEntry [] Unit),
       ("getchar", FunEntry [] String),
