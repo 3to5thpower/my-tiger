@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+
 module SemantSpec where
 
 import qualified Data.Map as M
@@ -6,6 +8,7 @@ import Semant.Semant
 import qualified Semant.Types as T
 import Test.Hspec
 
+baseDataEnv :: M.Map T.Symbol T.EnvEntry
 baseDataEnv =
   M.union T.baseDataEnv $
     M.fromList
@@ -14,6 +17,7 @@ baseDataEnv =
         ("bal", T.VarEntry $ T.Record [("name", T.String), ("id", T.Int)] 0)
       ]
 
+baseTypesEnv :: M.Map T.Symbol T.Ty
 baseTypesEnv =
   M.union T.baseTypesEnv $
     M.fromList
@@ -129,3 +133,51 @@ spec = do
     it "record type Declaration" $ do
       check (LetInEnd [TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")])] (Record (Id "Student") [(Id "id", Int 1), (Id "name", String "hoge")])) $
         T.Record [("name", T.String), ("id", T.Int)] 0
+    it "recursive short function declaration" $ do
+      check
+        ( LetInEnd
+            [ FunDec
+                ( ShortFunDec
+                    (Id "f")
+                    [(Id "x", Id "int")]
+                    ( IfThenElse
+                        (Less (LValue (Variable (Id "x"))) (Int 2))
+                        (Int 1)
+                        ( Times
+                            (LValue (Variable (Id "x")))
+                            ( FunCall
+                                (Id "f")
+                                [Minus (LValue (Variable (Id "x"))) (Int 1)]
+                            )
+                        )
+                    )
+                )
+            ]
+            (FunCall (Id "f") [Int 5])
+        )
+        T.Int
+
+    it "recursive long function declaration" $ do
+      check
+        ( LetInEnd
+            [ FunDec
+                ( LongFunDec
+                    (Id "f")
+                    [(Id "x", Id "int")]
+                    (Id "int")
+                    ( IfThenElse
+                        (Less (LValue (Variable (Id "x"))) (Int 2))
+                        (Int 1)
+                        ( Times
+                            (LValue (Variable (Id "x")))
+                            ( FunCall
+                                (Id "f")
+                                [Minus (LValue (Variable (Id "x"))) (Int 1)]
+                            )
+                        )
+                    )
+                )
+            ]
+            (FunCall (Id "f") [Int 5])
+        )
+        T.Int
