@@ -2,6 +2,7 @@
 
 module Semant.Semant where
 
+import Data.Foldable (foldlM)
 import Data.Functor ((<&>))
 import qualified Data.Map as M
 import Parse.Data
@@ -134,12 +135,20 @@ transExp venv tenv exp = trexp exp
         fields
 
 transDec :: T.VEnv -> T.TEnv -> [Dec] -> Either String (T.VEnv, T.TEnv)
-transDec v t [] = Right (v, t)
-transDec v t (dec : decs) = do
-  (venv, tenv) <- trDec v t dec
-  transDec venv tenv decs
+transDec v t decs = do
+  let envs = insertHeader v t decs
+  foldlM trDec envs decs
   where
-    trDec venv tenv dec = case dec of
+    insertHeader venv tenv decs = case decs of
+      [] -> (venv, tenv)
+      dec : decs -> case dec of
+        VarDec _ -> insertHeader venv tenv decs
+        TyDec (Id name) _ ->
+          insertHeader venv (M.insert name (T.Name name Nothing) tenv) decs
+        FunDec (ShortFunDec (Id name) _ _) -> insertHeader venv tenv decs
+        FunDec (LongFunDec (Id name) _ _ _) -> insertHeader venv tenv decs
+
+    trDec (venv, tenv) dec = case dec of
       TyDec (Id name) ty -> do
         ty <- transTy tenv ty
         return (venv, M.insert name ty tenv)

@@ -157,3 +157,22 @@ spec = do
             (FunCall (Id "f") [Int 5])
         )
         T.Int
+    it "recursive type declaration : double type" $ do
+      check
+        ( LetInEnd
+            [ TyDec (Id "a") (Type (Id "b")),
+              TyDec (Id "b") (Type (Id "int")),
+              VarDec $ LongVarDec (Id "x") (Id "a") (Int 1)
+            ]
+            (LValue (Variable (Id "x")))
+        )
+        T.Int
+    it "recursive type declaration : list" $ do
+      check
+        ( LetInEnd
+            [ TyDec (Id "list") $ RecordType [(Id "first", Id "int"), (Id "rest", Id "list")],
+              VarDec $ LongVarDec (Id "x") (Id "a") (Int 1)
+            ]
+            (LValue (Variable (Id "x")))
+        )
+        T.Int
