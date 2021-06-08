@@ -105,7 +105,7 @@ transExp venv tenv exp = trexp exp
     checkInt e = case trexp e <&> ty of
       Right T.Int -> Right T.Int
       Left e -> Left e
-      _ -> Left $ "type mismatch: expected Int, actual " ++ show e
+      Right ty -> Left $ "type mismatch: expected Int, actual " ++ show ty
     trvar lvalue = case lvalue of
       Variable (Id name) -> case venv M.!? name of
         Just (T.VarEntry ty) -> Right $ ExpTy exp ty
@@ -120,19 +120,18 @@ transExp venv tenv exp = trexp exp
         _ -> Left $ "undefined field: " ++ field
       Right _ -> Left $ "Cannot access field because " ++ show lv ++ " is not a record"
       _ -> Left $ "undefined variable: " ++ field
-
-    checkRecordField :: [(Id, Exp)] -> [(String, T.Ty)] -> Either String ()
-    checkRecordField fields tyfields = mapM_ f fields
-      where
-        f :: (Id, Exp) -> Either String ()
-        f (Id name, exp) = do
-          exptype <- trexp exp <&> ty
-          ty <- case lookup name tyfields of
-            Nothing -> Left $ "undefined field: " ++ name
-            Just ty -> Right ty
-          if ty == exptype
-            then Right ()
-            else Left $ "field type mismatch expected: " ++ show ty ++ " but actual: " ++ show exptype
+    checkRecordField fields tyfields =
+      mapM_
+        ( \(Id name, exp) -> do
+            exptype <- trexp exp <&> ty
+            ty <- case lookup name tyfields of
+              Nothing -> Left $ "undefined field: " ++ name
+              Just ty -> Right ty
+            if ty == exptype
+              then Right ()
+              else Left $ "field type mismatch expected: " ++ show ty ++ " but actual: " ++ show exptype
+        )
+        fields
 
 transDec :: T.VEnv -> T.TEnv -> [Dec] -> Either String (T.VEnv, T.TEnv)
 transDec v t [] = Right (v, t)
@@ -145,9 +144,7 @@ transDec v t (dec : decs) = do
         ty <- transTy tenv ty
         return (venv, M.insert name ty tenv)
       VarDec vdec -> trvardec venv tenv vdec
-      FunDec fdec@(ShortFunDec (Id name) tyfields _) -> do
-        args <- tyListFromTyFields tenv tyfields
-        trfundec (M.insert name (T.FunEntry args undefined) venv) tenv fdec
+      FunDec fdec@ShortFunDec {} -> trfundec venv tenv fdec
       FunDec fdec@(LongFunDec (Id name) tyfields (Id retType) _) -> do
         ty <- T.find tenv retType
         args <- tyListFromTyFields tenv tyfields

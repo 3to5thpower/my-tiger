@@ -133,31 +133,7 @@ spec = do
     it "record type Declaration" $ do
       check (LetInEnd [TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")])] (Record (Id "Student") [(Id "id", Int 1), (Id "name", String "hoge")])) $
         T.Record [("name", T.String), ("id", T.Int)] 0
-    it "recursive short function declaration" $ do
-      check
-        ( LetInEnd
-            [ FunDec
-                ( ShortFunDec
-                    (Id "f")
-                    [(Id "x", Id "int")]
-                    ( IfThenElse
-                        (Less (LValue (Variable (Id "x"))) (Int 2))
-                        (Int 1)
-                        ( Times
-                            (LValue (Variable (Id "x")))
-                            ( FunCall
-                                (Id "f")
-                                [Minus (LValue (Variable (Id "x"))) (Int 1)]
-                            )
-                        )
-                    )
-                )
-            ]
-            (FunCall (Id "f") [Int 5])
-        )
-        T.Int
-
-    it "recursive long function declaration" $ do
+    it "recursive function declaration" $ do
       check
         ( LetInEnd
             [ FunDec
