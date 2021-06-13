@@ -2,7 +2,9 @@
 
 module SemantSpec where
 
+import Control.Monad.ST
 import qualified Data.Map as M
+import Data.STRef
 import Parse.Data
 import Semant.Semant
 import qualified Semant.Types as T
@@ -133,6 +135,15 @@ spec = do
     it "record type Declaration" $ do
       check (LetInEnd [TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")])] (Record (Id "Student") [(Id "id", Int 1), (Id "name", String "hoge")])) $
         T.Record [("name", T.String), ("id", T.Int)] 0
+    it "record type nil Declaration" $ do
+      check
+        ( LetInEnd
+            [ TyDec (Id "student") (RecordType [(Id "id", Id "int"), (Id "name", Id "string")]),
+              VarDec $ LongVarDec (Id "x") (Id "student") Nil
+            ]
+            (LValue (Variable (Id "x")))
+        )
+        $ T.Record [("id", T.Int), ("name", T.String)] 0
     it "recursive function declaration" $ do
       check
         ( LetInEnd
@@ -157,20 +168,24 @@ spec = do
             (FunCall (Id "f") [Int 5])
         )
         T.Int
+    it "recursive type declaration : list" $ do
+      check
+        ( LetInEnd
+            [ TyDec (Id "list") $ RecordType [(Id "first", Id "int"), (Id "rest", Id "list")],
+              VarDec $
+                LongVarDec
+                  (Id "x")
+                  (Id "list")
+                  (Record (Id "list") [(Id "first", Int 1), (Id "rest", Nil)])
+            ]
+            (LValue (Variable (Id "x")))
+        )
+        (T.Name "list" $ newSTRef (Just "list") >>= readSTRef)
     it "recursive type declaration : double type" $ do
       check
         ( LetInEnd
             [ TyDec (Id "a") (Type (Id "b")),
               TyDec (Id "b") (Type (Id "int")),
-              VarDec $ LongVarDec (Id "x") (Id "a") (Int 1)
-            ]
-            (LValue (Variable (Id "x")))
-        )
-        T.Int
-    it "recursive type declaration : list" $ do
-      check
-        ( LetInEnd
-            [ TyDec (Id "list") $ RecordType [(Id "first", Id "int"), (Id "rest", Id "list")],
               VarDec $ LongVarDec (Id "x") (Id "a") (Int 1)
             ]
             (LValue (Variable (Id "x")))

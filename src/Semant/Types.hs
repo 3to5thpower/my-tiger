@@ -1,7 +1,13 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
+
 module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv) where
 
+import Control.Monad
 import Control.Monad.ST
 import qualified Data.Map as M
+import Data.Maybe (isJust)
 import Data.STRef
 
 type Symbol = String
@@ -35,14 +41,14 @@ baseDataEnv =
 
 type Unique = Integer
 
-data Ty
-  = Int
-  | String
-  | Record [(Symbol, Ty)] Unique
-  | Array Ty Unique
-  | Nil
-  | Unit
-  | Name Symbol (STRef (*) (Maybe Ty))
+data Ty where
+  Int :: Ty
+  String :: Ty
+  Record :: [(Symbol, Ty)] -> Unique -> Ty
+  Array :: Ty -> Unique -> Ty
+  Nil :: Ty
+  Unit :: Ty
+  Name :: Symbol -> (forall s. ST s (Maybe Symbol)) -> Ty
 
 instance Show Ty where
   show Int = "Int"
@@ -51,11 +57,17 @@ instance Show Ty where
   show (Array ty _) = "Array of " ++ show ty
   show Nil = "Nil"
   show Unit = "()"
+  show (Name name state) = maybe ("Name \"" ++ name ++ "\" Nothing") show (runST state)
 
 instance Eq Ty where
   Int == Int = True
   String == String = True
+  Nil == Record _ _ = True
+  Record _ _ == Nil = True
   Record r _ == Record s _ = r == s
   Array a _ == Array b _ = a == b
   Nil == Nil = True
   Unit == Unit = True
+  Name name_a state_a == Name name_b state_b =
+    name_a == name_b && (runST state_a == runST state_b)
+  _ == _ = False

@@ -1,10 +1,13 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Semant.Semant where
 
+import Control.Monad.ST
 import Data.Foldable (foldlM)
 import Data.Functor ((<&>))
 import qualified Data.Map as M
+import Data.STRef
 import Parse.Data
 import qualified Semant.Types as T
 
@@ -128,9 +131,10 @@ transExp venv tenv exp = trexp exp
             ty <- case lookup name tyfields of
               Nothing -> Left $ "undefined field: " ++ name
               Just ty -> Right ty
-            if ty == exptype
-              then Right ()
-              else Left $ "field type mismatch expected: " ++ show ty ++ " but actual: " ++ show exptype
+            if
+                | ty == exptype -> Right ()
+                | exptype == T.Nil -> Right ()
+                | otherwise -> Left $ "field type mismatch expected: " ++ show ty ++ " but actual: " ++ show exptype
         )
         fields
 
@@ -144,14 +148,28 @@ transDec v t decs = do
       dec : decs -> case dec of
         VarDec _ -> insertHeader venv tenv decs
         TyDec (Id name) _ ->
-          insertHeader venv (M.insert name (T.Name name Nothing) tenv) decs
+          insertHeader
+            venv
+            ( M.insert
+                name
+                ( T.Name name $
+                    newSTRef Nothing >>= readSTRef
+                )
+                tenv
+            )
+            decs
         FunDec (ShortFunDec (Id name) _ _) -> insertHeader venv tenv decs
         FunDec (LongFunDec (Id name) _ _ _) -> insertHeader venv tenv decs
 
     trDec (venv, tenv) dec = case dec of
-      TyDec (Id name) ty -> do
-        ty <- transTy tenv ty
-        return (venv, M.insert name ty tenv)
+      TyDec (Id name) ty -> case tenv M.!? name of
+        Just (T.Name name state) -> do
+          ty <- transTy tenv ty
+          return (venv, M.insert name ty tenv)
+        Just _ -> do
+          ty <- transTy tenv ty
+          return (venv, M.insert name ty tenv)
+        _ -> undefined -- unreachable pattern
       VarDec vdec -> trvardec venv tenv vdec
       FunDec fdec@ShortFunDec {} -> trfundec venv tenv fdec
       FunDec fdec@(LongFunDec (Id name) tyfields (Id retType) _) -> do
@@ -204,25 +222,30 @@ transDec v t decs = do
 
 find :: T.TEnv -> [Char] -> Either [Char] T.Ty
 find tenv name = case tenv M.!? name of
-  Nothing -> Left $ "undefined type of \"" ++ name
-  Just (T.Name name state) -> case runST state of
+  Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+  Just t@(T.Name name state) -> case runST state of
+    Just str -> case tenv M.!? str of
       Just ty -> Right ty
-      Nothing -> 
-
-
-
-  Just (T.Name name (Just ty)) -> Right ty
+      Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+    Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
   Just ty -> Right ty
 
 transTy :: T.TEnv -> Type -> Either String T.Ty
-transTy tenv (Type (Id name)) = find tenv name
-transTy tenv (ArrayType (Id name)) = do
-  ty <- find tenv name
+transTy tenv (Type (Id name)) = case tenv M.!? name of
+  Nothing -> Left $ "undefined type of: " ++ name
+  Just t@(T.Name name state) -> case runST state of
+    Just str -> case tenv M.!? str of
+      Just ty -> Right ty
+      Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+    Nothing -> Right t
+  Just ty -> Right ty
+transTy tenv (ArrayType name) = do
+  ty <- transTy tenv (Type name)
   return $ T.Array ty 0
 transTy tenv (RecordType tyfields) = do
-  fields <- mapM f tyfields
+  fields <- mapM mkSymTyAList tyfields
   return $ T.Record fields 0
   where
-    f (Id fieldName, Id typeId) = do
-      ty <- find tenv typeId
+    mkSymTyAList (Id fieldName, typeId) = do
+      ty <- transTy tenv (Type typeId)
       return (fieldName, ty)
