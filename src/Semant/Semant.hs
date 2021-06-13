@@ -156,13 +156,13 @@ transDec v t decs = do
       TyDec (Id name) tydec -> case tenv M.!? name of
         Just (T.Name (Just ref)) -> Left "multiple definition of type"
         Just (T.Name Nothing) -> do
-          reftype <- case tydec of
-            Type (Id id) -> Right $ T.Name (Just id)
+          (tenv, reftype) <- case tydec of
+            Type (Id id) -> Right (tenv, T.Name (Just id))
             RecordType _ -> transTy tenv tydec
             ArrayType _ -> transTy tenv tydec
           return (venv, M.insert name reftype tenv)
         Just _ -> do
-          ty <- transTy tenv tydec
+          (tenv, ty) <- transTy tenv tydec
           return (venv, M.insert name ty tenv)
         _ -> undefined -- unreachable pattern
       VarDec vdec -> trvardec venv tenv vdec
@@ -227,22 +227,25 @@ find tenv name = find' tenv name []
           Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
         Just ty -> Right ty
 
-transTy :: T.TEnv -> Type -> Either String T.Ty
+transTy :: T.TEnv -> Type -> Either String (T.TEnv, T.Ty)
 transTy tenv (Type (Id name)) = case tenv M.!? name of
   Nothing -> Left $ "undefined type of: " ++ name
   Just t@(T.Name ref) -> case ref of
     Just str -> case tenv M.!? str of
-      Just ty -> Right ty
+      Just ty -> Right (tenv, ty)
       Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
-    Nothing -> Right t
-  Just ty -> Right ty
+    Nothing -> Right (M.insert name (T.Name (Just name)) tenv, T.Name (Just name))
+  Just ty -> Right (tenv, ty)
 transTy tenv (ArrayType name) = do
-  ty <- transTy tenv (Type name)
-  return $ T.Array ty 0
+  (tenv, ty) <- transTy tenv (Type name)
+  return (tenv, T.Array ty 0)
 transTy tenv (RecordType tyfields) = do
-  fields <- mapM mkSymTyAList tyfields
-  return $ T.Record fields 0
-  where
-    mkSymTyAList (Id fieldName, typeId) = do
-      ty <- transTy tenv (Type typeId)
-      return (fieldName, ty)
+  (e, fields) <-
+    foldlM
+      ( \(tenv, lst) (Id fieldName, typeId) -> do
+          (tenv, ty) <- transTy tenv (Type typeId)
+          return (tenv, lst ++ [(fieldName, ty)])
+      )
+      (tenv, [])
+      tyfields
+  return (e, T.Record fields 0)
