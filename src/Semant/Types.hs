@@ -1,6 +1,8 @@
-module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv, find) where
+module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv) where
 
+import Control.Monad.ST
 import qualified Data.Map as M
+import Data.STRef
 
 type Symbol = String
 
@@ -12,11 +14,6 @@ data EnvEntry
 type VEnv = M.Map Symbol EnvEntry
 
 type TEnv = M.Map Symbol Ty
-
-find :: TEnv -> [Char] -> Either [Char] Ty
-find tenv name = case tenv M.!? name of
-  Nothing -> Left $ "undefined type of \"" ++ name
-  Just ty -> Right ty
 
 baseTypesEnv :: M.Map Symbol Ty
 baseTypesEnv = M.fromList [("int", Int), ("string", String)]
@@ -45,5 +42,20 @@ data Ty
   | Array Ty Unique
   | Nil
   | Unit
-  | Name Symbol (Maybe Ty)
-  deriving (Eq, Show)
+  | Name Symbol (STRef (*) (Maybe Ty))
+
+instance Show Ty where
+  show Int = "Int"
+  show String = "String"
+  show (Record lst _) = "Record" ++ show lst
+  show (Array ty _) = "Array of " ++ show ty
+  show Nil = "Nil"
+  show Unit = "()"
+
+instance Eq Ty where
+  Int == Int = True
+  String == String = True
+  Record r _ == Record s _ = r == s
+  Array a _ == Array b _ = a == b
+  Nil == Nil = True
+  Unit == Unit = True
