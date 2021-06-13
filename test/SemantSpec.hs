@@ -3,6 +3,7 @@
 module SemantSpec where
 
 import Control.Monad.ST
+import Data.Either
 import qualified Data.Map as M
 import Data.STRef
 import Parse.Data
@@ -180,7 +181,7 @@ spec = do
             ]
             (LValue (Variable (Id "x")))
         )
-        (T.Name "list" $ newSTRef (Just "list") >>= readSTRef)
+        (T.Record [("first", T.Int), ("rest", T.Name (Just "list"))] 0)
     it "recursive type declaration : double type" $ do
       check
         ( LetInEnd
@@ -191,3 +192,15 @@ spec = do
             (LValue (Variable (Id "x")))
         )
         T.Int
+    it "circular difinition" $ do
+      shouldSatisfy
+        ( semant
+            ( LetInEnd
+                [ TyDec (Id "a") (Type (Id "b")),
+                  TyDec (Id "b") (Type (Id "a")),
+                  VarDec $ LongVarDec (Id "x") (Id "a") (Int 1)
+                ]
+                (LValue (Variable (Id "x")))
+            )
+        )
+        isLeft

@@ -148,26 +148,21 @@ transDec v t decs = do
       dec : decs -> case dec of
         VarDec _ -> insertHeader venv tenv decs
         TyDec (Id name) _ ->
-          insertHeader
-            venv
-            ( M.insert
-                name
-                ( T.Name name $
-                    newSTRef Nothing >>= readSTRef
-                )
-                tenv
-            )
-            decs
+          insertHeader venv (M.insert name (T.Name Nothing) tenv) decs
         FunDec (ShortFunDec (Id name) _ _) -> insertHeader venv tenv decs
         FunDec (LongFunDec (Id name) _ _ _) -> insertHeader venv tenv decs
 
     trDec (venv, tenv) dec = case dec of
-      TyDec (Id name) ty -> case tenv M.!? name of
-        Just (T.Name name state) -> do
-          ty <- transTy tenv ty
-          return (venv, M.insert name ty tenv)
+      TyDec (Id name) tydec -> case tenv M.!? name of
+        Just (T.Name (Just ref)) -> Left "multiple definition of type"
+        Just (T.Name Nothing) -> do
+          reftype <- case tydec of
+            Type (Id id) -> Right $ T.Name (Just id)
+            RecordType _ -> transTy tenv tydec
+            ArrayType _ -> transTy tenv tydec
+          return (venv, M.insert name reftype tenv)
         Just _ -> do
-          ty <- transTy tenv ty
+          ty <- transTy tenv tydec
           return (venv, M.insert name ty tenv)
         _ -> undefined -- unreachable pattern
       VarDec vdec -> trvardec venv tenv vdec
@@ -221,19 +216,21 @@ transDec v t decs = do
           Just ty -> Right $ M.insert varId (T.VarEntry ty) venv
 
 find :: T.TEnv -> [Char] -> Either [Char] T.Ty
-find tenv name = case tenv M.!? name of
-  Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
-  Just t@(T.Name name state) -> case runST state of
-    Just str -> case tenv M.!? str of
-      Just ty -> Right ty
-      Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
-    Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
-  Just ty -> Right ty
+find tenv name = find' tenv name []
+  where
+    find' tenv name searched
+      | name `elem` searched = Left "cycle definition"
+      | otherwise = case tenv M.!? name of
+        Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+        Just t@(T.Name ref) -> case ref of
+          Just str -> find' tenv str $ name : searched
+          Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+        Just ty -> Right ty
 
 transTy :: T.TEnv -> Type -> Either String T.Ty
 transTy tenv (Type (Id name)) = case tenv M.!? name of
   Nothing -> Left $ "undefined type of: " ++ name
-  Just t@(T.Name name state) -> case runST state of
+  Just t@(T.Name ref) -> case ref of
     Just str -> case tenv M.!? str of
       Just ty -> Right ty
       Nothing -> Left $ "undefined type of \"" ++ name ++ "\""

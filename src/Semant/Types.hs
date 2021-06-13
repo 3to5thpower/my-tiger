@@ -48,16 +48,8 @@ data Ty where
   Array :: Ty -> Unique -> Ty
   Nil :: Ty
   Unit :: Ty
-  Name :: Symbol -> (forall s. ST s (Maybe Symbol)) -> Ty
-
-instance Show Ty where
-  show Int = "Int"
-  show String = "String"
-  show (Record lst _) = "Record" ++ show lst
-  show (Array ty _) = "Array of " ++ show ty
-  show Nil = "Nil"
-  show Unit = "()"
-  show (Name name state) = maybe ("Name \"" ++ name ++ "\" Nothing") show (runST state)
+  Name :: Maybe Symbol -> Ty
+  deriving (Show)
 
 instance Eq Ty where
   Int == Int = True
@@ -68,6 +60,5 @@ instance Eq Ty where
   Array a _ == Array b _ = a == b
   Nil == Nil = True
   Unit == Unit = True
-  Name name_a state_a == Name name_b state_b =
-    name_a == name_b && (runST state_a == runST state_b)
+  Name m == Name n = m == n
   _ == _ = False
