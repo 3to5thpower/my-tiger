@@ -140,17 +140,22 @@ transExp venv tenv exp = trexp exp
 
 transDec :: T.VEnv -> T.TEnv -> [Dec] -> Either String (T.VEnv, T.TEnv)
 transDec v t decs = do
-  let envs = insertHeader v t decs
+  envs <- insertHeader v t decs
   foldlM trDec envs decs
   where
     insertHeader venv tenv decs = case decs of
-      [] -> (venv, tenv)
+      [] -> Right (venv, tenv)
       dec : decs -> case dec of
         VarDec _ -> insertHeader venv tenv decs
         TyDec (Id name) _ ->
           insertHeader venv (M.insert name (T.Name Nothing) tenv) decs
-        FunDec (ShortFunDec (Id name) _ _) -> insertHeader venv tenv decs
-        FunDec (LongFunDec (Id name) _ _ _) -> insertHeader venv tenv decs
+        FunDec (ShortFunDec (Id name) tyfields _) -> do
+          tyList <- tyListFromTyFields tenv tyfields
+          insertHeader (M.insert name (T.FunEntry tyList T.Unit) venv) tenv decs
+        FunDec (LongFunDec (Id name) tyfields (Id retType) _) -> do
+          tyList <- tyListFromTyFields tenv tyfields
+          ret <- find tenv retType
+          insertHeader (M.insert name (T.FunEntry tyList ret) venv) tenv decs
 
     trDec (venv, tenv) dec = case dec of
       TyDec (Id name) tydec -> case tenv M.!? name of
