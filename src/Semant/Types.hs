@@ -2,13 +2,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv) where
+module Semant.Types (Ty (..), Symbol, EnvEntry (..), baseTypesEnv, baseDataEnv, VEnv, TEnv, actualTy) where
 
-import Control.Monad
-import Control.Monad.ST
 import qualified Data.Map as M
-import Data.Maybe (isJust)
-import Data.STRef
 
 type Symbol = String
 
@@ -62,3 +58,15 @@ instance Eq Ty where
   Unit == Unit = True
   Name m == Name n = m == n
   _ == _ = False
+
+actualTy :: TEnv -> [Char] -> Either [Char] Ty
+actualTy tenv name = actualTy' tenv name []
+  where
+    actualTy' tenv name searched
+      | name `elem` searched = Left "cycle definition"
+      | otherwise = case tenv M.!? name of
+        Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+        Just t@(Name ref) -> case ref of
+          Just str -> actualTy' tenv str $ name : searched
+          Nothing -> Left $ "undefined type of \"" ++ name ++ "\""
+        Just ty -> Right ty
