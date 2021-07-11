@@ -10,4 +10,32 @@ snapshots:
     sha256: 78e8ebabf11406261abbc95b44f240acf71802630b368888f6d758de7fc3a2f7
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/5.yaml
     size: 565266
-packages: []
+packages:
+- original:
+    hackage: alex-3.2.6
+  completed:
+    pantry-tree:
+      sha256: f11298f6d54429981bbef30e17d215c227b0aab607bdf8ea786781a574188260
+      size: 5732
+    hackage: alex-3.2.6@sha256:7e15b8ba44f4e858d7e302ae234c05ca10a120c401f0db5ea5bc6135347debca,4156
+- original:
+    hackage: happy-1.18
+  completed:
+    pantry-tree:
+      sha256: fa2890d359fe34d894c3402bc563bdf40da48faa754d4a51c25e07ff5a1b0c7d
+      size: 7420
+    hackage: happy-1.18@sha256:ceaf741f077566f4e8fd22154886bcf3286a5e01ff03c71690c31384738d574e,3753
+- original:
+    hackage: llvm-hs-pure-9.0.0
+  completed:
+    pantry-tree:
+      sha256: f1a83aa959b69b72342997fc4fdc352086bc3b9f306cfb6a4c8bbc850d36b4fb
+      size: 2600
+    hackage: llvm-hs-pure-9.0.0@sha256:134779f40086a366279f678e670b610d7a7618b28dd43f65894078fd20e04629,2945
+- original:
+    hackage: llvm-hs-pretty-0.6.2.0
+  completed:
+    pantry-tree:
+      sha256: dbad27efec25efc9bb739682f0770953086119bdb85b84c09ce103ddde1b5343
+      size: 4741
+    hackage: llvm-hs-pretty-0.6.2.0@sha256:4c600122965e8dff586bdca0044ec2b1896f2875c2da5ad89bbab9799c9697cd,1670
